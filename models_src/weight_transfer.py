@@ -25,15 +25,34 @@ def weight_transfer_fc(avg_dim):
 
 
 class Weight_Transfer(nn.Module):
-    def __init(self, twoD_model, threeD_model, avg_dim=1024):
+    def __init__(self, twoD_model, threeD_model, avg_dim=1024):
+        super(Weight_Transfer, self).__init__()
         self.twoD_model = twoD_model
         self.threeD_model = threeD_model
         self.inp_dim = avg_dim * 2
+        self.transfer = weight_transfer_fc(self.inp_dim)
 
         for param in twoD_model.parameters():
             param.requires_grad = False
 
-        def forward(self, x):
+        def forward(self, x):#x should be a sequence of frames
+            write = 1
             twoD_out = None
             for frame in x:
-                pred = self.twoD_model(x)
+                if write:
+                    twoD_out = self.twoD_model(frame)
+                    write = 0
+                else:
+                    twoD_out += self.twoD_model(frame)
+
+            twoD_out = twoD_out / x.size(0)
+            threeD_out = self.threeD_model(x)
+            concat = torch.cat([twoD_out, threeD_out], 1)
+            pred = self.transfer(concat)
+            return pred
+
+        def get_3D_weights(self):
+            return self.threeD_model.state_dict()
+
+        def get_transfer_weights(self):
+            return self.transfer.state_dict()
