@@ -38,14 +38,14 @@ class Weight_Transfer(nn.Module):
         def forward(self, x):#x should be a sequence of frames
             write = 1
             twoD_out = None
-            for frame in x:
+            for frame in x:#add preds from 2D model accross frames
                 if write:
                     twoD_out = self.twoD_model(frame)
                     write = 0
                 else:
                     twoD_out += self.twoD_model(frame)
 
-            twoD_out = twoD_out / x.size(0)
+            twoD_out = twoD_out / x.size(0)#average output from 2d model
             threeD_out = self.threeD_model(x)
             concat = torch.cat([twoD_out, threeD_out], 1)
             pred = self.transfer(concat)
