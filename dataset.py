@@ -37,6 +37,7 @@ class Videos(Dataset):
         self.vid_dim = (vid_dim, vid_dim)
         self.frames_per_batch = frames_per_batch
         self.labels = torch.zeros(len(self.vid_paths), self.num_classes, dtype=torch.int8)
+        self.label_names = [label.split('/')[-1] for label in self.vid_folders]
 
         start = 0
         for i, num_vids in enumerate(self.vids_per_class):
