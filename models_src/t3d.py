@@ -115,20 +115,29 @@ class DenseNet3D(nn.Module):
 
                 trans = _Transition(num_input_features=num_features, num_output_features=num_features )
                 self.features.add_module('transition%d' % (i + 1), trans)
-                num_features = num_features
+                num_features = num_features #why is this here?
 
-        if classifier:
-            # Final batch norm
-            self.features.add_module('norm5', nn.BatchNorm3d(num_features))
+        self.classifier = classifier
+        self.num_out_features = num_features
+        # Final batch norm
+        self.features.add_module('norm5', nn.BatchNorm3d(num_features))
+        
+        if self.classifier:
             # Linear layer
             self.classifier = nn.Linear(num_features, num_classes)
+            self.num_out_features = num_classes
 
     def forward(self, x):
         features = self.features(x)
         out = F.relu(features, inplace=True)
+        #looks like output is already flattened, so dont need to in weight transfer
         out = F.avg_pool3d(out, kernel_size=(1,7,7)).view(features.size(0), -1)
-        out = self.classifier(out)
+        if self.classifier:
+            out = self.classifier(out)
         return out
+
+    def get_num_out_features(self):
+        return self.num_out_features
 
 
 def densenet121_3D():
