@@ -124,10 +124,10 @@ def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12,
     x = Activation('relu')(x)
     x = AveragePooling3D(pool_size=(1, 7, 7))(x)
     x = Flatten(name='flatten_3d')(x)
-    x = Dense(1024, activation='relu')(x)
+    x = Dense(1024, activation='linear')(x)#was relu, pretty sure should be linear since this layyer is a transformation layer.
     #--------------fron 2d densenet model-----------------
     y = GlobalAveragePooling2D(name='avg_pool_densnet2d')(pretrained_densenet.output)
-    y = Dense(1024, activation='relu')(y)
+    y = Dense(1024, activation='linear')(y)#was relu, pretty sure should be linear since this layyer is a transformation layer.
 
     #-----------------------------------------------------
     x = keras.layers.concatenate([x,y])

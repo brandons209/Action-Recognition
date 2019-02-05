@@ -29,12 +29,13 @@ inputs should be the 2d and 3d models, with the T3D model not having its classif
 Also needs the output features of each model, the T3D model has a function to get those, and denset2D has 1000 feature output
 """
 class Weight_Transfer(nn.Module):
-    def __init__(self, twoD_model, threeD_model, twoD_out_features=1000, threeD_out_features, avg_dim=1024):
+    def __init__(self, twoD_model, threeD_model, twoD_out_features=1000, threeD_out_features, frames_per_batch, avg_dim=1024):
         super(Weight_Transfer, self).__init__()
         self.twoD_model = twoD_model
         self.threeD_model = threeD_model
         self.inp_dim = avg_dim * 2
         self.transfer = weight_transfer_fc(self.inp_dim)
+        self.num_frames = frames_per_batch
 
         #transform layers to transform outputs of 2D and 3D networks to an average dimension size for weight transfer
         self.twoD_transform_layer = nn.Linear(twoD_out_features, avg_dim)
@@ -47,16 +48,20 @@ class Weight_Transfer(nn.Module):
         def forward(self, x):#x should be a sequence of frames
             write = 1
             twoD_out = None
-            for frame in x:#add preds from 2D model accross frames
+            for i in range(self.num_frames):#add preds from 2D model accross frames
                 if write:
-                    twoD_out = self.twoD_model(frame)
+                    twoD_out = self.twoD_model(x[i])
                     write = 0
                 else:
-                    twoD_out += self.twoD_model(frame)
+                    twoD_out += self.twoD_model(x[i])
 
             twoD_out = twoD_out / x.size(0)#average output from 2d model
-            #looks like output is already flattened for T3D model
-            threeD_out = self.threeD_model(x)
+
+            try:#if this works, another set of frames is in x for negative pair, which will go into the 3D model
+                threeD_out = self.threeD_model(x[self.num_frames:])
+            except:#not a negative pair
+                #looks like output is already flattened for T3D model
+                threeD_out = self.threeD_model(x)
 
             #transform outputs into average dimesions
             twoD_out = self.twoD_transform_layer(twoD_out)

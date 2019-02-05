@@ -13,8 +13,8 @@ def get_frames(video_path, num_frames):
         frames.append(frame)
     video.release()
 
-    #get all frames from video
-    frames = np.array(frames)
+    #get all frames from video, concatenate so its just one numpy array instead of multiply numpy arrays in a numpy array
+    frames = np.concatenate(frames)
     #split frames into batches of num_frames
     frames = np.split(frames, num_frames)
     #randomly select consecutive num_frames batch from frames
@@ -54,8 +54,9 @@ class Videos(Dataset):
         frames = get_frames(video_path, self.frames_per_batch)
         for i, _ in enumerate(frames):
             frames[i] = cv2.resize(frames[i], self.vid_dim, interpolation=cv2.INTER_AREA)
+            frames[i] /= 255.0 #normalize 0-255 -> 0-1
         #need to convert frames to tensor, and each frame in their to tensors as well
-        return frames, self.labels[index]
+        return torch.from_numpy(frames), self.labels[index]
 """
 dataset for loading youtube8m videos and generating a postive or negative pair
 """
@@ -80,7 +81,7 @@ class Youtube8m(Dataset):
 
         #need to convert frames to tensor, and each frame in their to tensors as well
         if label:#positive pair
-            return (frames, frames), label
+            return torch.from_numpy(frames), label
         else:#negative pair, get another sample.
             #get randome video, loop incase it gets the same video
             neg_index = None
@@ -93,4 +94,4 @@ class Youtube8m(Dataset):
             for i, _ in enumerate(neg_frames):
                 neg_frames[i] = cv2.resize(neg_frames[i], self.vid_dim, interpolation=cv2.INTER_AREA)
                 neg_frames[i] /= 255.0
-            return (frames, neg_frames), label
+            return torch.from_numpy(np.concatenate(frames, neg_frames)), label
