@@ -76,6 +76,7 @@ class Youtube8m(Dataset):
         frames = get_frames(video_path, self.frames_per_batch)
         for i, _ in enumerate(frames):
             frames[i] = cv2.resize(frames[i], self.vid_dim, interpolation=cv2.INTER_AREA)
+            frames[i] /= 255.0 #normalize 0-255 -> 0-1
 
         #need to convert frames to tensor, and each frame in their to tensors as well
         if label:#positive pair
@@ -91,4 +92,5 @@ class Youtube8m(Dataset):
             neg_frames = get_frames(video_neg_path, self.frames_per_batch)
             for i, _ in enumerate(neg_frames):
                 neg_frames[i] = cv2.resize(neg_frames[i], self.vid_dim, interpolation=cv2.INTER_AREA)
+                neg_frames[i] /= 255.0
             return (frames, neg_frames), label
