@@ -8,13 +8,13 @@ __all__ = ['DenseNet', 'densenet121', 'densenet161'] # with DropOut
 class _DenseLayer(nn.Sequential):
     def __init__(self, num_input_features, growth_rate, bn_size, drop_rate):
         super(_DenseLayer, self).__init__()
-        self.add_module('norm.1', nn.BatchNorm3d(num_input_features)),
-        self.add_module('relu.1', nn.ReLU(inplace=True)),
-        self.add_module('conv.1', nn.Conv3d(num_input_features, bn_size *
+        self.add_module('norm1', nn.BatchNorm3d(num_input_features)),
+        self.add_module('relu1', nn.ReLU(inplace=True)),
+        self.add_module('conv1', nn.Conv3d(num_input_features, bn_size *
                         growth_rate, kernel_size=1, stride=1, bias=False)),
-        self.add_module('norm.2', nn.BatchNorm3d(bn_size * growth_rate)),
-        self.add_module('relu.2', nn.ReLU(inplace=True)),
-        self.add_module('conv.2', nn.Conv3d(bn_size * growth_rate, growth_rate,
+        self.add_module('norm2', nn.BatchNorm3d(bn_size * growth_rate)),
+        self.add_module('relu2', nn.ReLU(inplace=True)),
+        self.add_module('conv2', nn.Conv3d(bn_size * growth_rate, growth_rate,
                         kernel_size=3, stride=1, padding=1, bias=False)),
         self.drop_rate = drop_rate
 
@@ -43,29 +43,26 @@ class _Transition(nn.Sequential):
         self.add_module('pool', nn.AvgPool3d(kernel_size=2, stride=2))
 
 class _TTL(nn.Sequential):
-    def __init__(self, num_input_features, num_output_features):
-        super(_Transition, self).__init__()
+    def __init__(self, num_input_features):
+        super(_TTL, self).__init__()
 
-        self.b1 = nn.Sequential(
-            self.add_module('norm', nn.BatchNorm3d(num_input_features))
-            self.add_module('relu', nn.ReLU(inplace=True))
-            self.add_module('conv', nn.Conv3d(num_input_features, 128,
-                                          kernel_size=1, stride=1, bias=False))
-        )
+        self.b1 = nn.Sequential(OrderedDict([
+            ('norm', nn.BatchNorm3d(num_input_features)),
+            ('relu', nn.ReLU(inplace=True)),
+            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=1, stride=1, bias=False))
+        ]))
 
-        self.b2 = nn.Sequential(
-            self.add_module('norm', nn.BatchNorm3d(num_input_features))
-            self.add_module('relu', nn.ReLU(inplace=True))
-            self.add_module('conv', nn.Conv3d(num_input_features, 128,
-                                          kernel_size=(3,3,3), stride=1, bias=False))
-        )
+        self.b2 = nn.Sequential(OrderedDict([
+            ('norm', nn.BatchNorm3d(num_input_features)),
+            ('relu', nn.ReLU(inplace=True)),
+            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=(3,3,3), stride=1, bias=False))
+        ]))
 
-        self.b3 = nn.Sequential(
-            self.add_module('norm', nn.BatchNorm3d(num_input_features))
-            self.add_module('relu', nn.ReLU(inplace=True))
-            self.add_module('conv', nn.Conv3d(num_input_features, 128,
-                                          kernel_size=(4,3,3), stride=1, bias=False))
-        )
+        self.b3 = nn.Sequential(OrderedDict([
+            ('norm', nn.BatchNorm3d(num_input_features)),
+            ('relu', nn.ReLU(inplace=True)),
+            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=(4,3,3), stride=1, bias=False))
+        ]))
 
     def forward(self, x):
         y1 = self.b1(x)
@@ -113,7 +110,7 @@ class DenseNet3D(nn.Module):
                 self.features.add_module('ttl%d' % (i + 1), ttl)
                 num_features = 128*3
 
-                trans = _Transition(num_input_features=num_features, num_output_features=num_features )
+                trans = _Transition(num_input_features=num_features, num_output_features=num_features)
                 self.features.add_module('transition%d' % (i + 1), trans)
                 num_features = num_features #why is this here?
 
@@ -121,10 +118,13 @@ class DenseNet3D(nn.Module):
         self.num_out_features = num_features
         # Final batch norm
         self.features.add_module('norm5', nn.BatchNorm3d(num_features))
-        
+
         if self.classifier:
             # Linear layer
-            self.classifier = nn.Linear(num_features, num_classes)
+            self.classifier = nn.Sequential(OrderedDict([
+                ('final_layer', nn.Linear(num_features, num_classes)),
+                ('softmax', nn.Softmax())
+            ]))
             self.num_out_features = num_classes
 
     def forward(self, x):
