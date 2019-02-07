@@ -14,7 +14,6 @@ from get_video import video_gen
 
 # there is a minimum number of frames that the network must have, values below 10 gives -- ValueError: Negative dimension size caused by subtracting 3 from 2 for 'conv3d_7/convolution'
 # paper uses 224x224, but in that case also the above error occurs
-#some videos are under two seconds, so either stop them or reduce frames per video
 FRAMES_PER_VIDEO = 45
 FRAME_HEIGHT = 256
 FRAME_WIDTH = 256

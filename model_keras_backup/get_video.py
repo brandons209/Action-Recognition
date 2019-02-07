@@ -6,7 +6,6 @@ import random
 
 ROOT_PATH = ''
 
-
 def get_video_frames(src, fpv, frame_height, frame_width):
     # print('reading video from', src)
     cap = cv2.VideoCapture(src)
@@ -14,47 +13,50 @@ def get_video_frames(src, fpv, frame_height, frame_width):
     frames = []
     if not cap.isOpened():
         cap.open(src)
-    ret = True
-    while(True and ret):
+
+    ret, frame = cap.read()
+
+    while(ret):
+        frames.append(frame)
         # Capture frame-by-frame
         ret, frame = cap.read()
-
-        frames.append(frame)
-        #if cv2.waitKey(1) & 0xFF == ord('q'):
-        #    break
 
     # When everything done, release the capture
     cap.release()
 
     rnd_idx = random.randint(5,len(frames)-5)
     rnd_frame = frames[rnd_idx]
-    rnd_frame = cv2.resize(rnd_frame,(224,224)) #Needed for Densenet121-2d
+    rnd_frame = cv2.resize(rnd_frame,(224,224), interpolation=cv2.INTER_AREA)) #Needed for Densenet121-2d
     #print("frame length: ", len(frames))
-    # Return fpv=10 frames
+    #if the amount of frames is less than the frames per video, set step to one
     step = len(frames)//fpv
+    if step == 0:
+        step = 1
+    print("frames length: ", len(frames))
     avg_frames = frames[::step]
+    print("avg_frames length: ", len(avg_frames))
     avg_frames = avg_frames[:fpv]
+    print("avg_frames length: ", len(avg_frames))
     avg_resized_frames = []
     for af in avg_frames:
-        rsz_f = cv2.resize(af, (frame_width, frame_height))
+        rsz_f = cv2.resize(af, (frame_width, frame_height), interpolation=cv2.INTER_AREA))
+        rsz_f = rsz_f / 255.0
         avg_resized_frames.append(rsz_f)
-    return np.asarray(rnd_frame)/255.0,np.asarray(avg_resized_frames)
+    return np.asarray(rnd_frame)/255.0, np.asarray(avg_resized_frames)
 
 
 def get_video_and_label(index, data, frames_per_video, frame_height, frame_width):
     # Read clip and appropiately send the sports' class
     frame, clip = get_video_frames(os.path.join(
         ROOT_PATH, data['path'].values[index].strip()), frames_per_video, frame_height, frame_width)
-    sport_class = data['class'].values[index]
+    action = data['class'].values[index]
 
     frame = np.expand_dims(frame, axis=0)
     clip = np.expand_dims(clip, axis=0)
 
     # print('Frame shape',frame.shape)
     # print('Clip shape',clip.shape)
-
-
-    return frame, clip, sport_class
+    return frame, clip, action
 
 
 def video_gen(data, frames_per_video, frame_height, frame_width, channels, num_classes, batch_size=4):
@@ -72,10 +74,10 @@ def video_gen(data, frames_per_video, frame_height, frame_width, channels, num_c
 
             for i in current_batch:
                 # get frames and its corresponding color for an traffic light
-                _, single_clip, sport_class = get_video_and_label(i, data, frames_per_video, frame_height, frame_width)
+                _, single_clip, action = get_video_and_label(i, data, frames_per_video, frame_height, frame_width)
                  # Appending them to existing batch
                 clip = np.append(clip, single_clip, axis=0)
-                y_train = np.append(y_train, [sport_class])
+                y_train = np.append(y_train, [action])
 
             y_train = to_categorical(y_train, num_classes=num_classes)
 
@@ -93,18 +95,27 @@ def video_gen_wt(data, frames_per_video, frame_height, frame_width, channels, nu
             clip = np.empty([0, frames_per_video, frame_height, frame_width, channels], dtype=np.float32)
             frame = np.empty([0, 224, 224, 3], dtype=np.float32)
 
-            y_train = np.empty([0], dtype=np.int32)
+            label = np.random.randint(2);
 
             for i in current_batch:
-                # get frames and its corresponding color for an traffic light
-                single_frame, single_clip, sport_class = get_video_and_label(
-                    i, data, frames_per_video, frame_height, frame_width)
+                if label == 0:
+                    #generate index for negative sample, and makes sure it is not the current index.
+                    neg_index = np.random.randint(len(data['path']))
+                    while neg_index == index:
+                        neg_index = np.random.randint(len(data['path']))
+                    #get clip from current index, and frame from negative index
+                    _, single_clip, _ = get_video_and_label(
+                        i, data, frames_per_video, frame_height, frame_width)
+                    single_frame, _ , _ = get_video_and_label(
+                            neg_index, data, frames_per_video, frame_height, frame_width)
+                else:
+                    single_frame, single_clip, _ = get_video_and_label(
+                        i, data, frames_per_video, frame_height, frame_width)
 
                 # Appending them to existing batch
                 frame = np.append(frame, single_frame, axis=0)
                 clip = np.append(clip, single_clip, axis=0)
 
-                y_train = np.append(y_train, [sport_class])
-            y_train = to_categorical(y_train, num_classes=num_classes)
+                y_train = np.append(y_train, [label])
 
             yield ([frame, clip], y_train)

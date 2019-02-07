@@ -2,6 +2,13 @@ from random import shuffle
 import csv
 import glob
 import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-video_path", type=str, default="data/moes_tavern_lines.txt", help="path to a single text file or a directory contain text files")
+parser.add_argument("-seq_length", type=int, default=15, help="sequence length of input into the network")
+parser.add_argument("-continue", type=str, default=None, help="path to weights file if continuing training.")
+options = parser.parse_args()
 
 action_classes = ['boxing', 'carrying', 'clapping', 'digging', 'jogging', 'openclosetrunk', 'running', 'throwing', 'walking', 'waving']
 print(len(set(action_classes)))

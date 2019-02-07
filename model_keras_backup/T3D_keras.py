@@ -5,8 +5,6 @@ from keras.layers import AveragePooling3D, MaxPooling3D, Dense, Flatten, GlobalA
 from keras.activations import linear, softmax
 from keras.applications import densenet
 
-__all__ = ['DenseNet', 'densenet121', 'densenet161']  # with DropOut
-
 
 def _DenseLayer(prev_layer, growth_rate, bn_size, drop_rate):
     if prev_layer is None:
