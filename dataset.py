@@ -80,7 +80,7 @@ class Videos(Dataset):
         for i, _ in enumerate(frames):
             resized_frames.append(cv2.resize(frames[i], self.vid_dim, interpolation=cv2.INTER_AREA))
 
-        frames = np.concatenate(np.expand_dims(resized_frames, axis=0))
+        frames = np.rollaxis(np.concatenate(np.expand_dims(resized_frames, axis=0)), 3, 1)
         frames = frames.astype('float32') / 255.0 #normalize 0-255 to 0-1
 
         return torch.from_numpy(frames), self.labels[index]
@@ -108,7 +108,7 @@ class Youtube8m(Dataset):
         for i, _ in enumerate(frames):
             resized_frames.append(cv2.resize(frames[i], self.vid_dim, interpolation=cv2.INTER_AREA))
 
-        frames = np.concatenate(np.expand_dims(resized_frames, axis=0))
+        frames = np.rollaxis(np.concatenate(np.expand_dims(resized_frames, axis=0)), 3, 1)
         frames = frames.astype('float32') / 255.0 #normalize 0-255 to 0-1
 
         if label:#positive pair
@@ -128,7 +128,7 @@ class Youtube8m(Dataset):
             for i, _ in enumerate(neg_frames):
                 resized_frames.append(cv2.resize(neg_frames[i], self.vid_dim, interpolation=cv2.INTER_AREA))
 
-            neg_frames = np.concatenate(np.expand_dims(resized_frames, axis=0))
+            neg_frames = np.rollaxis(np.concatenate(np.expand_dims(resized_frames, axis=0)), 3, 1)
             neg_frames = frames.astype('float32') / 255.0 #normalize 0-255 to 0-1
             neg_frames = np.concatenate((frames, neg_frames), axis=0)
             return torch.from_numpy(neg_frames), torch.tensor(label)

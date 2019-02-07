@@ -131,8 +131,8 @@ def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12,
 
     #-----------------------------------------------------
     x = keras.layers.concatenate([x,y])
-    x = Dense(2048, activation='relu')(x)
-    x = Dropout(0.65)(x)
+    #x = Dense(2048, activation='relu')(x)
+    #x = Dropout(0.65)(x)
     x = Dense(512, activation='relu')(x)
     x = Dropout(0.5)(x)
     x = Dense(128, activation='relu')(x)
@@ -144,17 +144,75 @@ def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12,
 
     return model
 
+def DenseNet3D(input_shape, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0, num_classes=5):
+    r"""Densenet-BC model class, based on
+    `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
+    Args:
+        growth_rate (int) - how many filters to add each layer (`k` in paper)
+        block_config (list of 4 ints) - how many layers in each pooling block
+        num_init_features (int) - the number of filters to learn in the first convolution layer
+        bn_size (int) - multiplicative factor for number of bottle neck layers
+          (i.e. bn_size * k features in the bottleneck layer)
+        drop_rate (float) - dropout rate after each dense layer
+        num_classes (int) - number of classification classes
+    """
+    # First convolution-----------------------
+    inp_3d = (Input(shape=input_shape, name='3d_input'))
+
+
+    # need to check padding
+    x = (Conv3D(num_init_features, kernel_size=(3, 7, 7), strides=2, padding='same', use_bias=False))(inp_3d)
+
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    # need to check padding
+    x = MaxPooling3D(pool_size=(3, 3, 3), strides=(2, 2, 2), padding='valid')(x)
+
+    # Each denseblock
+    num_features = num_init_features
+    for i, num_layers in enumerate(block_config):
+        # print('Pass', i)
+        x = _DenseBlock(x, num_layers=num_layers,
+                        bn_size=bn_size, growth_rate=growth_rate, drop_rate=drop_rate)
+
+        num_features = num_features + num_layers * growth_rate
+
+        if i != len(block_config) - 1:
+            # print('Not Last layer, so adding Temporal Transition Layer')
+
+            x = _TTL(x)
+            # num_features = 128*3
+
+            x = _Transition(x, num_output_features=num_features)
+            num_features = num_features
+
+    # Final batch norm
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+
+    x = AveragePooling3D(pool_size=(1, 7, 7))(x)
+    x = Flatten(name='flatten_3d')(x)
+    out = Dense(num_classes, activation='softmax')(x)
+
+    model = Model(inputs=inp_3d, outputs=[out])
+    #model.summary()
+    return model
 
 # the below model has the lowest Top-1 error in ImageNet Data Set:
+def densenet161_3D_DropOut_wt(input_shape, nb_classes):
+    model = DenseNet3D_Weight_Transfer(input_shape, growth_rate=48, block_config=(6, 12, 36, 24), num_init_features=96, drop_rate=0.6, num_classes=nb_classes)
+    return model
+
 def densenet161_3D_DropOut(input_shape, nb_classes):
     model = DenseNet3D(input_shape, growth_rate=48, block_config=(6, 12, 36, 24), num_init_features=96, drop_rate=0.6, num_classes=nb_classes)
     return model
 
-
-def densenet121_3D_DropOut(input_shape, nb_classes):
-    """Constructs a DenseNet-121_DropOut model.
-    """
-    model = DenseNet3D(input_shape, num_init_features=64, growth_rate=32, block_config=(6, 12, 24, 16), drop_rate=0.6, num_classes=nb_classes)
-    return model
+#def densenet121_3D_DropOut(input_shape, nb_classes):
+#    """Constructs a DenseNet-121_DropOut model.
+#    """
+#    model = DenseNet3D(input_shape, num_init_features=64, growth_rate=32, block_config=(6, 12, 24, 16), drop_rate=0.6, num_classes=nb_classes)
+#    return model
 
 #model = DenseNet3D_Weight_Transfer((20, 256, 256, 3), growth_rate=48, block_config=(6, 12, 36, 24), num_init_features=96, drop_rate=0.6, num_classes=12)
+#model.summary()

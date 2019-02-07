@@ -12,8 +12,7 @@ The 3D network should not have a classifier, last output should be output of las
 def weight_transfer_fc(inp_dim):
     #these might work better with leaky relu.
     model = nn.Sequential(OrderedDict([
-        ('fc0', nn.Linear(inp_dim, inp_dim)),
-        ('relu0', nn.ReLU(inplace=True)),
+
         ('fc1', nn.Linear(inp_dim, inp_dim//4)),
         ('relu1', nn.ReLU(inplace=True)),
         ('fc2', nn.Linear(inp_dim//4, inp_dim//16)),
@@ -50,18 +49,25 @@ class Weight_Transfer(nn.Module):
         twoD_out = None
         for i in range(self.num_frames):#add preds from 2D model accross frames
             if write:
-                twoD_out = self.twoD_model(x[i])
+                x_farme = x[i].unsqueeze(0)
+                twoD_out = self.twoD_model(x_farme)
                 write = 0
             else:
-                twoD_out += self.twoD_model(x[i])
+                x_farme = x[i].unsqueeze(0)
+                twoD_out += self.twoD_model(x_farme)
 
         twoD_out = twoD_out / x.size(0)#average output from 2d model
 
         try:#if this works, another set of frames is in x for negative pair, which will go into the 3D model
-            threeD_out = self.threeD_model(x[self.num_frames:])
+            sh = x[self.num_frames:].shape
+            print(sh)
+            x_farme = x[self.num_frames:].unsqueeze(0).view(1, sh[1], sh[0], sh[2], sh[3])
+            threeD_out = self.threeD_model(x_farme)
         except:#not a negative pair
             #looks like output is already flattened for T3D model
-            threeD_out = self.threeD_model(x)
+            sh = x.shape
+            x_farme = x.unsqueeze(0).view(1, sh[1], sh[0], sh[2], sh[3])
+            threeD_out = self.threeD_model(x_farme)
 
         #transform outputs into average dimesions
         twoD_out = self.twoD_transform_layer(twoD_out)

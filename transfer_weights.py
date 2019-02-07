@@ -14,12 +14,15 @@ t3d = DenseNet3D(num_init_features=96, growth_rate=48, block_config=(6, 12, 48, 
 transfer = Weight_Transfer(densenet_2D, t3d, twoD_out_features=1000, threeD_out_features=t3d.get_num_out_features(), frames_per_batch=60)
 #print(transfer)
 
-data = Youtube8m("data/aerial_clips/boxing", vid_dim=224, frames_per_batch=60)
+data = Youtube8m("data/ucf-arg/aerial_clips/boxing", vid_dim=224, frames_per_batch=60)
+#data = Youtube8m()
 
 ## hyperparameters
 epochs = 30
 print_step = len(data) // 10
 save_step = 5
+device = torch.device('cuda:0')
+transfer = transfer.to(device)
 
 loss = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(transfer.parameters(), lr=0.001)
@@ -31,7 +34,8 @@ for e in range(epochs):
     for i, frames in tqdm(enumerate(data, 0)):
 
         inputs, labels = frames
-        inputs, labels = Variable(inputs), Variable(labels)
+        print(inputs.shape)
+        inputs, labels = Variable(inputs).cuda(), Variable(labels).cuda()
 
         optimizer.zero_grad()
 

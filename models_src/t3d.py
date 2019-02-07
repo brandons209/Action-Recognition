@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from collections import OrderedDict
+import numpy as np
 
 __all__ = ['DenseNet', 'densenet121', 'densenet161'] # with DropOut
 
@@ -49,7 +50,7 @@ class _TTL(nn.Sequential):
         self.b1 = nn.Sequential(OrderedDict([
             ('norm', nn.BatchNorm3d(num_input_features)),
             ('relu', nn.ReLU(inplace=True)),
-            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=1, stride=1, bias=False))
+            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=(3, 3, 3), stride=1, bias=False))
         ]))
 
         self.b2 = nn.Sequential(OrderedDict([
@@ -61,16 +62,44 @@ class _TTL(nn.Sequential):
         self.b3 = nn.Sequential(OrderedDict([
             ('norm', nn.BatchNorm3d(num_input_features)),
             ('relu', nn.ReLU(inplace=True)),
-            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=(4,3,3), stride=1, bias=False))
+            ('conv', nn.Conv3d(num_input_features, 128, kernel_size=(3,3,3), stride=1, bias=False))
         ]))
 
     def forward(self, x):
         y1 = self.b1(x)
-        y2 = self.b2(x)
-        y3 = self.b3(x)
-        return torch.cat([y1,y2,y3], 1)
+        #shape = y1.shape
+        #print('y1: ', y1.shape)
+        y2 = self.b2(x)#.view(1, shape[1], shape[2], shape[3], shape[4])
+        #print('y2: ', y2.shape)
+        y3 = self.b3(x)#.view(1, shape[1], shape[2], shape[3], shape[4])
+        #print('y3: ', y3.shape)
+        #repeat1 = [s1 - s2 for s1, s2 in zip(y1.shape, y2.shape)]
+        #repeat2 = [s1 - s2 for s1, s2 in zip(y1.shape, y3.shape)]
+        #print('repeat 1', repeat1)
+        #print('y2 expand: ', y2.expand(repeat1).shape)
 
+        #y1 = self.b1(x)
+        #print(self.makeEven(tuple(np.subtract(y1.shape, y2.shape))))
+        #print(self.makeEven(tuple(np.subtract(y1.shape, y3.shape))))
+        #diff1 = tuple(np.subtract(y1.shape[1:], y2.shape[1:]))
+        #print(diff1)
+        #y2 =  F.pad(y2, (0, diff1[3], 0, diff1[2], 0, diff1[1], 0, diff1[0], 0, 0))
+        #diff2 = tuple(np.subtract(y1.shape[1:], y3.shape[1:]))
+        #print(diff2)
+        #y3 =  F.pad(y3, (0, diff2[3], 0, diff2[2], 0, diff2[1], 0, diff2[0], 0, 0))
+        #print('n y2: ', y2.shape)
+        #print('n y3: ', y3.shape)
+        #print('Shapes: ', y1, y2, y3)
 
+        return torch.cat([y1,y2, y3], 1)
+
+    def makeEven(self, tpl):
+        lst = []
+        for x in tpl:
+            if x % 2 != 0:
+                x = x + 1
+            lst.append(x)
+        return tuple(lst)
 
 class DenseNet3D(nn.Module):
     r"""Densenet-BC model class, based on

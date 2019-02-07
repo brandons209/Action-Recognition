@@ -20,8 +20,8 @@ def get_video_frames(src, fpv, frame_height, frame_width):
         ret, frame = cap.read()
 
         frames.append(frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        #if cv2.waitKey(1) & 0xFF == ord('q'):
+        #    break
 
     # When everything done, release the capture
     cap.release()
@@ -29,7 +29,7 @@ def get_video_frames(src, fpv, frame_height, frame_width):
     rnd_idx = random.randint(5,len(frames)-5)
     rnd_frame = frames[rnd_idx]
     rnd_frame = cv2.resize(rnd_frame,(224,224)) #Needed for Densenet121-2d
-
+    #print("frame length: ", len(frames))
     # Return fpv=10 frames
     step = len(frames)//fpv
     avg_frames = frames[::step]
@@ -58,6 +58,30 @@ def get_video_and_label(index, data, frames_per_video, frame_height, frame_width
 
 
 def video_gen(data, frames_per_video, frame_height, frame_width, channels, num_classes, batch_size=4):
+    while True:
+        # Randomize the indices to make an array
+        indices_arr = np.random.permutation(data.count()[0])
+        for batch in range(0, len(indices_arr), batch_size):
+            # slice out the current batch according to batch-size
+            current_batch = indices_arr[batch:(batch + batch_size)]
+
+            # initializing the arrays, x_train and y_train
+            clip = np.empty([0, frames_per_video, frame_height, frame_width, channels], dtype=np.float32)
+
+            y_train = np.empty([0], dtype=np.int32)
+
+            for i in current_batch:
+                # get frames and its corresponding color for an traffic light
+                _, single_clip, sport_class = get_video_and_label(i, data, frames_per_video, frame_height, frame_width)
+                 # Appending them to existing batch
+                clip = np.append(clip, single_clip, axis=0)
+                y_train = np.append(y_train, [sport_class])
+
+            y_train = to_categorical(y_train, num_classes=num_classes)
+
+            yield (clip, y_train)
+
+def video_gen_wt(data, frames_per_video, frame_height, frame_width, channels, num_classes, batch_size=4):
     while True:
         # Randomize the indices to make an array
         indices_arr = np.random.permutation(data.count()[0])

@@ -2,30 +2,31 @@
 import os
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.model_selection import train_test_split
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
 from keras.optimizers import Adam, SGD
 import keras.backend as K
 import traceback
 
-from T3D_keras import densenet161_3D_DropOut, densenet121_3D_DropOut
+from T3D_keras import densenet161_3D_DropOut
 from get_video import video_gen
 
 # there is a minimum number of frames that the network must have, values below 10 gives -- ValueError: Negative dimension size caused by subtracting 3 from 2 for 'conv3d_7/convolution'
 # paper uses 224x224, but in that case also the above error occurs
-FRAMES_PER_VIDEO = 20
+#some videos are under two seconds, so either stop them or reduce frames per video
+FRAMES_PER_VIDEO = 45
 FRAME_HEIGHT = 256
 FRAME_WIDTH = 256
 FRAME_CHANNEL = 3
-NUM_CLASSES = 50
+#NUM_CLASSES = 10
 BATCH_SIZE = 5
 EPOCHS = 200
 MODEL_FILE_NAME = 'T3D_saved_model.h5'
 
 
 def train():
-    sample_input = np.empty(
-        [FRAMES_PER_VIDEO, FRAME_HEIGHT, FRAME_WIDTH, FRAME_CHANNEL], dtype=np.uint8)
+    sample_input = np.empty([FRAMES_PER_VIDEO, FRAME_HEIGHT, FRAME_WIDTH, FRAME_CHANNEL], dtype=np.uint8)
 
     # Read Dataset
     d_train = pd.read_csv(os.path.join('train.csv'))
@@ -41,7 +42,7 @@ def train():
     # Get Model
     # model = densenet121_3D_DropOut(sample_input.shape, nb_classes)
     model = densenet161_3D_DropOut(sample_input.shape, nb_classes)
-
+    #model.summary()
     checkpoint = ModelCheckpoint('T3D_saved_model_weights.hdf5', monitor='val_loss',
                                  verbose=1, save_best_only=True, mode='min', save_weights_only=True)
     earlyStop = EarlyStopping(monitor='val_loss', mode='min', patience=100)
@@ -55,7 +56,7 @@ def train():
     optim = Adam(lr=1e-4, decay=1e-6)
     #optim = SGD(lr = 0.1, momentum=0.9, decay=1e-4, nesterov=True)
     model.compile(optimizer=optim, loss='categorical_crossentropy', metrics=['accuracy'])
-    
+
     if os.path.exists('./T3D_saved_model_weights.hdf5'):
         print('Pre-existing model weights found, loading weights.......')
         model.load_weights('./T3D_saved_model_weights.hdf5')
@@ -78,6 +79,8 @@ def train():
         workers=1
     )
     model.save(MODEL_FILE_NAME)
+    with open("history.pkl", "wb") as f:
+        pickle.dump(history, f)
 
 
 if __name__ == '__main__':
