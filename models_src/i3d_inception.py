@@ -13,6 +13,7 @@ from __future__ import absolute_import
 import warnings
 
 import numpy as np
+import os
 
 from keras.models import Model
 from keras import layers
@@ -27,6 +28,7 @@ from keras.layers import Dropout
 from keras.layers import Reshape
 from keras.layers import Lambda
 from keras.layers import GlobalAveragePooling3D
+from keras.layers import Flatten
 
 from keras.engine.topology import get_source_inputs
 from keras.utils import layer_utils
@@ -507,8 +509,6 @@ def Inception_Inflated3d(include_top=True,
         w = int(x.shape[3])
         x = AveragePooling3D((2, h, w), strides=(1, 1, 1), padding='valid', name='global_avg_pool')(x)
 
-
-
     inputs = img_input
     # create model
     model = Model(inputs, x, name='i3d_inception')
@@ -566,4 +566,4 @@ def Inception_Inflated3d(include_top=True,
     elif weights is not None:
         model.load_weights(weights)
 
-return model
+    return model

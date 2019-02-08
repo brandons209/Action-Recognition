@@ -26,30 +26,34 @@ def get_video_frames(src, fpv, frame_height, frame_width):
 
     rnd_idx = random.randint(5,len(frames)-5)
     rnd_frame = frames[rnd_idx]
-    rnd_frame = cv2.resize(rnd_frame,(224,224), interpolation=cv2.INTER_AREA)) #Needed for Densenet121-2d
+    rnd_frame = cv2.resize(rnd_frame,(224,224), interpolation=cv2.INTER_AREA) #Needed for Densenet121-2d
     #print("frame length: ", len(frames))
     #if the amount of frames is less than the frames per video, set step to one
     step = len(frames)//fpv
     if step == 0:
         step = 1
-    print("frames length: ", len(frames))
-    avg_frames = frames[::step]
-    print("avg_frames length: ", len(avg_frames))
-    avg_frames = avg_frames[:fpv]
-    print("avg_frames length: ", len(avg_frames))
+    #gets which section of frames to select
+    frame_select = np.random.choice(np.arange(step))
+    avg_frames = frames[(frame_select*fpv):(frame_select*fpv + fpv)]
+    #print("avg frame length: ", len(avg_frames))
+    #avg_frames = avg_frames[:fpv]
     avg_resized_frames = []
     for af in avg_frames:
-        rsz_f = cv2.resize(af, (frame_width, frame_height), interpolation=cv2.INTER_AREA))
+        rsz_f = cv2.resize(af, (frame_width, frame_height), interpolation=cv2.INTER_AREA)
         rsz_f = rsz_f / 255.0
         avg_resized_frames.append(rsz_f)
+    #print("shape: ", np.asarray(avg_resized_frames).shape)
     return np.asarray(rnd_frame)/255.0, np.asarray(avg_resized_frames)
 
 
-def get_video_and_label(index, data, frames_per_video, frame_height, frame_width):
+def get_video_and_label(index, data, frames_per_video, frame_height, frame_width, use_class=True):
     # Read clip and appropiately send the sports' class
     frame, clip = get_video_frames(os.path.join(
         ROOT_PATH, data['path'].values[index].strip()), frames_per_video, frame_height, frame_width)
-    action = data['class'].values[index]
+    if use_class:
+        action = data['class'].values[index]
+    else:
+        action = None
 
     frame = np.expand_dims(frame, axis=0)
     clip = np.expand_dims(clip, axis=0)
@@ -83,7 +87,7 @@ def video_gen(data, frames_per_video, frame_height, frame_width, channels, num_c
 
             yield (clip, y_train)
 
-def video_gen_wt(data, frames_per_video, frame_height, frame_width, channels, num_classes, batch_size=4):
+def video_gen_wt(data, frames_per_video, frame_height, frame_width, channels, batch_size=4):
     while True:
         # Randomize the indices to make an array
         indices_arr = np.random.permutation(data.count()[0])
@@ -96,21 +100,22 @@ def video_gen_wt(data, frames_per_video, frame_height, frame_width, channels, nu
             frame = np.empty([0, 224, 224, 3], dtype=np.float32)
 
             label = np.random.randint(2);
+            y_train = np.empty([0], dtype=np.int32)
 
             for i in current_batch:
                 if label == 0:
                     #generate index for negative sample, and makes sure it is not the current index.
                     neg_index = np.random.randint(len(data['path']))
-                    while neg_index == index:
+                    while neg_index == i:
                         neg_index = np.random.randint(len(data['path']))
                     #get clip from current index, and frame from negative index
                     _, single_clip, _ = get_video_and_label(
-                        i, data, frames_per_video, frame_height, frame_width)
+                        i, data, frames_per_video, frame_height, frame_width, use_class=False)
                     single_frame, _ , _ = get_video_and_label(
-                            neg_index, data, frames_per_video, frame_height, frame_width)
+                            neg_index, data, frames_per_video, frame_height, frame_width, use_class=False)
                 else:
                     single_frame, single_clip, _ = get_video_and_label(
-                        i, data, frames_per_video, frame_height, frame_width)
+                        i, data, frames_per_video, frame_height, frame_width, use_class=False)
 
                 # Appending them to existing batch
                 frame = np.append(frame, single_frame, axis=0)

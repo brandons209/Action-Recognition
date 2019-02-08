@@ -66,7 +66,7 @@ def _TTL(prev_layer):
     return x
 
 
-def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0, num_classes=5):
+def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12, 24, 16), num_init_features=64, bn_size=4, drop_rate=0):
     r"""Densenet-BC model class, based on
     `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`
     Args:
@@ -76,7 +76,6 @@ def DenseNet3D_Weight_Transfer(input_shape, growth_rate=32, block_config=(6, 12,
         bn_size (int) - multiplicative factor for number of bottle neck layers
           (i.e. bn_size * k features in the bottleneck layer)
         drop_rate (float) - dropout rate after each dense layer
-        num_classes (int) - number of classification classes
     """
     #-----------------------------------------------------------------
     inp_2d = (Input(shape=(224,224,3), name='2d_input'))
@@ -198,8 +197,8 @@ def DenseNet3D(input_shape, growth_rate=32, block_config=(6, 12, 24, 16), num_in
     return model
 
 # the below model has the lowest Top-1 error in ImageNet Data Set:
-def densenet161_3D_DropOut_wt(input_shape, nb_classes):
-    model = DenseNet3D_Weight_Transfer(input_shape, growth_rate=48, block_config=(6, 12, 36, 24), num_init_features=96, drop_rate=0.6, num_classes=nb_classes)
+def densenet161_3D_DropOut_wt(input_shape):
+    model = DenseNet3D_Weight_Transfer(input_shape, growth_rate=48, block_config=(6, 12, 36, 24), num_init_features=96, drop_rate=0.6)
     return model
 
 def densenet161_3D_DropOut(input_shape, nb_classes):
