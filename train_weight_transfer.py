@@ -56,7 +56,7 @@ def train():
     #model.summary()
     checkpoint = ModelCheckpoint('saved_weights/T3D_saved_model_weights_wt_{}.hdf5'.format(start_time), monitor='val_loss',
                                  verbose=1, save_best_only=True, mode='min', save_weights_only=True)
-    earlyStop = EarlyStopping(monitor='val_loss', mode='min', patience=100)
+    earlyStop = EarlyStopping(monitor='val_loss', mode='min', patience=30)
     reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.5,
                                        patience=20,
                                        verbose=1, mode='min', min_delta=0.0001, cooldown=2, min_lr=1e-9)
