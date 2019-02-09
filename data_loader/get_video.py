@@ -30,11 +30,18 @@ def get_video_frames(src, fpv, frame_height, frame_width):
     #print("frame length: ", len(frames))
     #if the amount of frames is less than the frames per video, set step to one
     step = len(frames)//fpv
-    if step == 0:
-        step = 1
     #gets which section of frames to select
-    frame_select = np.random.choice(np.arange(step))
+    if not step == 0:
+        frame_select = np.random.choice(np.arange(step))
+    else:
+        frame_select = 0
     avg_frames = frames[(frame_select*fpv):(frame_select*fpv + fpv)]
+    #if theres not enough frames to fill up to fpv, append frames with 127.5 scalar values
+    if len(avg_frames) < fpv:
+        for _ in range(fpv - len(avg_frames)):
+            filler = np.zeros(avg_frames[0].shape)
+            filler.fill(127.5)
+            avg_frames.append(filler)
     #print("avg frame length: ", len(avg_frames))
     #avg_frames = avg_frames[:fpv]
     avg_resized_frames = []
