@@ -93,7 +93,7 @@ def train():
         callbacks=callbacks_list,
         workers=1
     )
-
+    model.load_weights('saved_weights/I3D_saved_model_weights_{}.hdf5'.format(start_time))
     model.save(MODEL_FILE_NAME)
     with open("data/history_i3d_{}.pkl".format(start_time), "wb") as f:
         pickle.dump(history, f)
