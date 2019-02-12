@@ -22,6 +22,8 @@ parser.add_argument("-batch_size", type=int, default=1, help="batch size of inpu
 parser.add_argument("-epochs", type=int, default=200, help="number of epochs to run")
 parser.add_argument("-model_save_path", type=str, default="saved_weights/", help="directory to save weights and models to")
 parser.add_argument("-weight_load_path", type=str, default=None, help="path to pretrained weights to load")
+parser.add_argument("-pretrain", type=int, default=1, help="1 - use pretrain weights for i3d on kinetics, 0 - don't use pretrain weights on kinetics")
+parser.add_argument("-dropout", type=float, default=0.4, help="0.0-1.0, amount of dropout to apply in model")
 options = parser.parse_args()
 
 start_time = time.strftime("%a_%b_%d_%Y_%H:%M", time.localtime())
@@ -34,6 +36,7 @@ FRAME_WIDTH = int(options.video_resol.split("x")[0])
 FRAME_CHANNEL = 3
 BATCH_SIZE = options.batch_size
 EPOCHS = options.epochs
+DROPOUT = options.dropout
 MODEL_FILE_NAME = '{}/I3D_saved_model_{}.h5'.format(options.model_save_path, start_time)
 learning_rate = 1e-4
 decay = 1e-6
@@ -52,11 +55,15 @@ def train():
         d_valid, FRAMES_PER_VIDEO, FRAME_HEIGHT, FRAME_WIDTH, FRAME_CHANNEL, nb_classes, batch_size=BATCH_SIZE)
 
     # Get Model
-    model = Inception_Inflated3d(include_top=False, input_shape=sample_input.shape, weights="rgb_kinetics_only")
-    classifier = model.output
-    classifier = Flatten()(classifier)
-    classifier = Dense(nb_classes, activation='softmax')(classifier)
-    model = Model(inputs=model.input, outputs=classifier)
+    if options.pretrain:
+        model = Inception_Inflated3d(include_top=False, input_shape=sample_input.shape, weights="rgb_kinetics_only", dropout_prob=DROPOUT)
+        classifier = model.output
+        classifier = Flatten()(classifier)
+        classifier = Dense(nb_classes, activation='softmax')(classifier)
+        model = Model(inputs=model.input, outputs=classifier)
+    else:
+        model = Inception_Inflated3d(input_shape=sample_input.shape, dropout_prob=DROPOUT, classes=nb_classes)
+    
     #model.summary()
     checkpoint = ModelCheckpoint('saved_weights/I3D_saved_model_weights_{}.hdf5'.format(start_time), monitor='val_loss',
                                  verbose=1, save_best_only=True, mode='min', save_weights_only=True)
