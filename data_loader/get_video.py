@@ -35,28 +35,27 @@ def get_video_frames(src, fpv, frame_height, frame_width):
         frame_select = np.random.choice(np.arange(step))
     else:
         frame_select = 0
+    #while theres not enough frames to fill up to fpv, create duplicates of each frame and add them after their original frame.
+    while len(frames) < fpv:
+        for i in range(len(frames)):
+            filler = frames[i]
+            frames.insert(i+1, filler)
+
+    #grabs section of frames specified by frame_select. if 0 its 0->fpv, 1 is fpv->fpv * 2 etc...
     avg_frames = frames[(frame_select*fpv):(frame_select*fpv + fpv)]
-    #if theres not enough frames to fill up to fpv, append frames with 127.5 scalar values
-    if len(avg_frames) < fpv:
-        for _ in range(fpv - len(avg_frames)):
-            filler = np.zeros(avg_frames[0].shape)
-            filler.fill(127.5)
-            avg_frames.append(filler)
     #print("avg frame length: ", len(avg_frames))
-    #avg_frames = avg_frames[:fpv]
     avg_resized_frames = []
     for af in avg_frames:
         rsz_f = cv2.resize(af, (frame_width, frame_height), interpolation=cv2.INTER_AREA)
-        rsz_f = rsz_f / 255.0
+        rsz_f = rsz_f / 255.0 #normalize
         avg_resized_frames.append(rsz_f)
     #print("shape: ", np.asarray(avg_resized_frames).shape)
-    return np.asarray(rnd_frame)/255.0, np.asarray(avg_resized_frames)
+    return np.asarray(rnd_frame) / 255.0, np.asarray(avg_resized_frames)
 
 
 def get_video_and_label(index, data, frames_per_video, frame_height, frame_width, use_class=True):
     # Read clip and appropiately send the sports' class
-    frame, clip = get_video_frames(os.path.join(
-        ROOT_PATH, data['path'].values[index].strip()), frames_per_video, frame_height, frame_width)
+    frame, clip = get_video_frames(os.path.join(ROOT_PATH, data['path'].values[index].strip()), frames_per_video, frame_height, frame_width)
     if use_class:
         action = data['class'].values[index]
     else:
