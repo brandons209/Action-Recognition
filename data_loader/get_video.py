@@ -36,12 +36,16 @@ def get_video_frames(src, fpv, frame_height, frame_width):
     else:
         frame_select = 0
     avg_frames = frames[(frame_select*fpv):(frame_select*fpv + fpv)]
-    #if theres not enough frames to fill up to fpv, append frames with 127.5 scalar values
-    if len(avg_frames) < fpv:
-        for _ in range(fpv - len(avg_frames)):
-            filler = np.zeros(avg_frames[0].shape)
-            filler.fill(127.5)
-            avg_frames.append(filler)
+    #while theres not enough frames to fill up to fpv, create duplicates of each frame and add them after their original frame.
+    calc_flag = 0
+    while len(avg_frames) < fpv:
+        calc_flag = 1
+        for i in range(len(avg_frames)):
+            filler = avg_frames[i]
+            avg_frames.insert(i+1, filler)
+    #if added more frames, need to rerun this line to make sure theres the exact number of frames in avg_frames
+    if calc_flag:
+        avg_frames = avg_frames[(frame_select*fpv):(frame_select*fpv + fpv)]
     #print("avg frame length: ", len(avg_frames))
     #avg_frames = avg_frames[:fpv]
     avg_resized_frames = []
