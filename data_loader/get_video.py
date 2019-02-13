@@ -2,6 +2,7 @@ import os
 import cv2
 import numpy as np
 from keras.utils.np_utils import to_categorical
+from keras.preprocessing.image import ImageDataGenerator
 import random
 
 ROOT_PATH = ''
@@ -70,6 +71,7 @@ def get_video_and_label(index, data, frames_per_video, frame_height, frame_width
 
 
 def video_gen(data, frames_per_video, frame_height, frame_width, channels, num_classes, batch_size=4):
+    augment_gen = ImageDataGenerator(width_shift_range=frame_width//5, height_shift_range=frame_height//5, zoom_range=0.3, horizontal_flip=True, vertical_flip=True)
     while True:
         # Randomize the indices to make an array
         indices_arr = np.random.permutation(data.count()[0])

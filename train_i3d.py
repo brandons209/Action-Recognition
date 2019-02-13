@@ -62,8 +62,8 @@ def train():
         classifier = Dense(nb_classes, activation='softmax')(classifier)
         model = Model(inputs=model.input, outputs=classifier)
     else:
-        model = Inception_Inflated3d(input_shape=sample_input.shape, dropout_prob=DROPOUT, classes=nb_classes)
-    
+        model = Inception_Inflated3d(input_shape=sample_input.shape, dropout_prob=DROPOUT, classes=nb_classes, endpoint_logit=False)
+
     #model.summary()
     checkpoint = ModelCheckpoint('saved_weights/I3D_saved_model_weights_{}.hdf5'.format(start_time), monitor='val_loss',
                                  verbose=1, save_best_only=True, mode='min', save_weights_only=True)
