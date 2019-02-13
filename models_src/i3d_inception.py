@@ -495,15 +495,16 @@ def Inception_Inflated3d(include_top=True,
         x = conv3d_bn(x, classes, 1, 1, 1, padding='same',
                 use_bias=True, use_activation_fn=False, use_bn=False, name='Conv3d_6a_1x1')
 
-        num_frames_remaining = int(x.shape[1])
-        x = Reshape((num_frames_remaining, classes))(x)
+        #num_frames_remaining = int(x.shape[1])
+        #x = Reshape((num_frames_remaining, classes))(x)
 
         # logits (raw scores for each class)
-        x = Lambda(lambda x: K.mean(x, axis=1, keepdims=False),
-                   output_shape=lambda s: (s[0], s[2]))(x)
-
-        if not endpoint_logit:
-            x = Activation('softmax', name='prediction')(x)
+        #x = Lambda(lambda x: K.mean(x, axis=1, keepdims=False),
+        #           output_shape=lambda s: (s[0], s[2]))(x)
+        x = Flatten()(x)
+        x = Dense(classes, activation='softmax')
+        #if not endpoint_logit:
+        #    x = Activation('softmax', name='prediction')(x)
     else:
         h = int(x.shape[2])
         w = int(x.shape[3])
