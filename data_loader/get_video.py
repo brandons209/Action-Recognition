@@ -76,7 +76,7 @@ class Video_Meta_Loader(Sequence):
         return int(np.ceil(len(self.img_paths) / float(self.batch_size)))
 
     def __getitem__(self, idx):
-        batch_imgs = self.paths[idx * self.batch_size : (idx + 1) * self.batch_size]
-        batch_imgs = np.vstack([get_video(video, self.fpv, self.img_dim[0], self.img_dim[1]) for video in batch_imgs])
+        batch = self.paths[idx * self.batch_size : (idx + 1) * self.batch_size]
+        batch = np.vstack([get_video(video, self.fpv, self.img_dim[0], self.img_dim[1]) for video in batch])
 
-        return batch_imgs, class
+        return batch, class
